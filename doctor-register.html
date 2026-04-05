@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Register — QueueCare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <section class="auth-wrap">
+    <div class="auth-grid">
+      <div class="card auth-panel">
+        <span class="eyebrow" style="background:rgba(255,255,255,.15);color:#fff;">Doctor Registration</span>
+        <h1>Create a doctor account</h1>
+        <p>
+          Register your doctor profile with specialty and hospital information for secure access.
+        </p>
+
+        <div class="auth-links">
+          <a class="auth-chip" href="index.html">Home</a>
+          <a class="auth-chip" href="doctor-login.html">Doctor Login</a>
+        </div>
+      </div>
+
+      <div class="card auth-form">
+        <h2>Doctor Register</h2>
+        <div id="authNotice" class="notice">Fill in doctor information to create an account.</div>
+
+        <form id="authForm" class="form-grid" style="margin-top:16px;">
+          <div class="field">
+            <label>Doctor Name</label>
+            <input type="text" name="name" required />
+          </div>
+
+          <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" required />
+          </div>
+
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required />
+          </div>
+
+          <div class="field">
+            <label>Specialty</label>
+            <input type="text" name="specialty" required />
+          </div>
+
+          <div class="field">
+            <label>Hospital / Chamber</label>
+            <input type="text" name="hospital" required />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Register as Doctor</button>
+            <a class="btn btn-outline" href="doctor-login.html">Already have account</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+  <script>QueueCare.setupAuth('doctor','register');</script>
+</body>
+</html>

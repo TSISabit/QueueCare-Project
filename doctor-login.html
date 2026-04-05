@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Login — QueueCare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <section class="auth-wrap">
+    <div class="auth-grid">
+      <div class="card auth-panel">
+        <span class="eyebrow" style="background:rgba(255,255,255,.15);color:#fff;">Doctor Portal</span>
+        <h1>Login to your doctor account</h1>
+        <p>
+          Secure access for doctor dashboard, patient consultation data, and reports.
+        </p>
+
+        <div class="auth-links">
+          <a class="auth-chip" href="index.html">Home</a>
+          <a class="auth-chip" href="doctor-register.html">Doctor Register</a>
+          <a class="auth-chip" href="patient-login.html">Patient Login</a>
+        </div>
+      </div>
+
+      <div class="card auth-form">
+        <h2>Doctor Login</h2>
+        <p class="muted">Demo email: doctor@queuecare.test &nbsp; Password: 12345678</p>
+
+        <div id="authNotice" class="notice">Only doctor login can access doctor-specific patient queue details.</div>
+
+        <form id="authForm" class="form-grid" style="margin-top:16px;">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" required />
+          </div>
+
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Login as Doctor</button>
+            <a class="btn btn-outline" href="doctor-register.html">Create doctor account</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+  <script>QueueCare.setupAuth('doctor','login');</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Dashboard — QueueCare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="doctor-dashboard">
+  <div id="navbarMount"></div>
+
+  <main class="page-shell">
+    <div class="container">
+      <div class="page-head">
+        <div>
+          <div class="page-chip">Doctor Portal</div>
+          <h1>Hello, <span id="doctorName">Doctor</span></h1>
+          <p class="muted">Private queue control and patient consultation history are visible only after doctor login.</p>
+        </div>
+        <div class="form-actions">
+          <button id="addDelayBtn" class="btn btn-outline" type="button">Add Delay</button>
+          <button id="nextPatientBtn" class="btn btn-primary" type="button">Next Patient</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="card kpi-card"><div class="muted">Now serving</div><div class="kpi-value" id="doctorNowServing">-</div><div class="kpi-meta">Hidden outside doctor view</div></div>
+        <div class="card kpi-card"><div class="muted">Predicted delay</div><div class="kpi-value" id="doctorEta">-</div><div class="kpi-meta">Live queue estimate</div></div>
+        <div class="card kpi-card"><div class="muted">Patients logged</div><div class="kpi-value" id="doctorConsulted">0</div><div class="kpi-meta">Consultation records</div></div>
+        <div class="card kpi-card"><div class="muted">Reports stored</div><div class="kpi-value" id="doctorReports">0</div><div class="kpi-meta">All attached reports</div></div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="card table-card">
+          <div class="section-title" style="margin-bottom:12px;">
+            <div>
+              <h2 style="font-size:1.5rem;margin:0;">Patient consultation records</h2>
+              <p class="muted">Dates, visit issues, and reports for each patient already seen.</p>
+            </div>
+          </div>
+          <div style="overflow:auto;">
+            <table class="table">
+              <thead>
+                <tr><th>Patient</th><th>Date</th><th>Issue</th><th>Reports</th><th>Status</th></tr>
+              </thead>
+              <tbody id="doctorPatientsTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="card form-card">
+            <h3>Upcoming queue</h3>
+            <p class="muted">This list is visible only in doctor mode.</p>
+            <div id="doctorQueueList" class="queue-compact"></div>
+          </div>
+          <div class="card chart-card">
+            <h3>Weekly analytics</h3>
+            <p class="muted">Appointments vs average wait.</p>
+            <div style="height:280px;"><canvas id="doctorAnalyticsChart"></canvas></div>
+          </div>
+          <div class="card form-card">
+            <div class="notice info">Doctor portal can review past patients and all report names. Public users and patients cannot access this panel.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+  <script>QueueCare.renderDoctorDashboard();</script>
+</body>
+</html>
