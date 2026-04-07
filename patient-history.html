@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body data-page="patient-history">
   <div id="navbarMount"></div>
@@ -17,38 +17,33 @@
       <div class="page-head">
         <div>
           <div class="page-chip">Patient Profile</div>
-          <h1>Consultation history</h1>
-          <p class="muted">See which doctors you visited and when.</p>
+          <h1>Consultation History</h1>
+          <p class="muted">View your profile details and appointment timeline.</p>
         </div>
         <a href="patient-dashboard.html" class="btn btn-outline">Back to Dashboard</a>
       </div>
 
       <div class="two-col">
         <div class="card form-card">
-          <h3>Profile overview</h3>
+          <h3>Profile Overview</h3>
           <div class="flex" style="margin-top:14px;align-items:flex-start;">
-            <div class="avatar">P</div>
+            <div class="avatar" id="profileAvatar">P</div>
             <div>
-              <div><strong id="profileName">Patient</strong></div>
+              <div><strong id="profileName">-</strong></div>
               <div class="muted small" id="profileEmail">-</div>
               <div class="muted small" id="profilePhone">-</div>
             </div>
           </div>
-          <div class="notice info" style="margin-top:16px;">Only the patient can see this complete personal consultation timeline from their own account.</div>
         </div>
+
         <div class="card form-card">
-          <h3>Privacy rule</h3>
-          <p class="muted">Patients do not see who is currently in service or who is next in line for a doctor. They only see queue size, their own serial, and estimated wait.</p>
+          <h3>Privacy</h3>
+          <p class="muted">Only records associated with the logged-in patient account are shown here.</p>
         </div>
       </div>
 
       <div class="card timeline-card" style="margin-top:20px;">
-        <div class="section-title" style="margin-bottom:12px;">
-          <div>
-            <h2 style="font-size:1.5rem;margin:0;">Full visit timeline</h2>
-            <p class="muted">Doctor names, dates, hospitals, and visit summaries.</p>
-          </div>
-        </div>
+        <h3>Visit Timeline</h3>
         <div id="fullPatientHistory" class="timeline-list"></div>
       </div>
     </div>

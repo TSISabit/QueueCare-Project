@@ -7,34 +7,30 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <section class="auth-wrap">
     <div class="auth-grid">
       <div class="card auth-panel">
-        <span class="eyebrow" style="background:rgba(255,255,255,.15);color:#fff;">Doctor Portal</span>
+        <span class="eyebrow light">Doctor Portal</span>
         <h1>Login to your doctor account</h1>
-        <p>
-          Secure access for doctor dashboard, patient consultation data, and reports.
-        </p>
+        <p>Manage your profile, slots, appointments, and queue from the doctor dashboard.</p>
 
         <div class="auth-links">
           <a class="auth-chip" href="index.html">Home</a>
-          <a class="auth-chip" href="doctor-register.html">Doctor Register</a>
+          <a class="auth-chip" href="doctor-register.html">Create Account</a>
           <a class="auth-chip" href="patient-login.html">Patient Login</a>
         </div>
       </div>
 
       <div class="card auth-form">
         <h2>Doctor Login</h2>
-        <p class="muted">Demo email: doctor@queuecare.test &nbsp; Password: 12345678</p>
+        <div id="authNotice" class="notice">Only registered doctor accounts can access the doctor dashboard.</div>
 
-        <div id="authNotice" class="notice">Only doctor login can access doctor-specific patient queue details.</div>
-
-        <form id="authForm" class="form-grid" style="margin-top:16px;">
+        <form id="authForm" class="form-grid" style="margin-top:16px;" novalidate>
           <div class="field">
-            <label>Email</label>
+            <label>Email Address</label>
             <input type="email" name="email" required />
           </div>
 
@@ -44,8 +40,8 @@
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Login as Doctor</button>
-            <a class="btn btn-outline" href="doctor-register.html">Create doctor account</a>
+            <button class="btn btn-primary" type="submit">Login</button>
+            <a class="btn btn-outline" href="doctor-register.html">Register</a>
           </div>
         </form>
       </div>
@@ -53,6 +49,6 @@
   </section>
 
   <script src="app.js"></script>
-  <script>QueueCare.setupAuth('doctor','login');</script>
+  <script>QueueCare.setupAuth('doctor', 'login');</script>
 </body>
 </html>

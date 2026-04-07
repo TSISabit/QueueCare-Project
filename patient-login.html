@@ -7,34 +7,30 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <section class="auth-wrap">
     <div class="auth-grid">
       <div class="card auth-panel">
-        <span class="eyebrow" style="background:rgba(255,255,255,.15);color:#fff;">Patient Portal</span>
+        <span class="eyebrow light">Patient Portal</span>
         <h1>Login to your patient account</h1>
-        <p>
-          Access your personal dashboard, search doctors, and manage appointments from one place.
-        </p>
+        <p>Access your appointments, serial number, estimated waiting time, and visit history.</p>
 
         <div class="auth-links">
           <a class="auth-chip" href="index.html">Home</a>
-          <a class="auth-chip" href="patient-register.html">Patient Register</a>
+          <a class="auth-chip" href="patient-register.html">Create Account</a>
           <a class="auth-chip" href="doctor-login.html">Doctor Login</a>
         </div>
       </div>
 
       <div class="card auth-form">
         <h2>Patient Login</h2>
-        <p class="muted">Demo email: patient@queuecare.test &nbsp; Password: 12345678</p>
+        <div id="authNotice" class="notice">Enter your registered credentials to continue.</div>
 
-        <div id="authNotice" class="notice">Appointment booking is enabled only after patient login.</div>
-
-        <form id="authForm" class="form-grid" style="margin-top:16px;">
+        <form id="authForm" class="form-grid" style="margin-top:16px;" novalidate>
           <div class="field">
-            <label>Email</label>
+            <label>Email Address</label>
             <input type="email" name="email" required />
           </div>
 
@@ -44,8 +40,8 @@
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Login as Patient</button>
-            <a class="btn btn-outline" href="patient-register.html">Create account</a>
+            <button class="btn btn-primary" type="submit">Login</button>
+            <a class="btn btn-outline" href="patient-register.html">Register</a>
           </div>
         </form>
       </div>
@@ -53,6 +49,6 @@
   </section>
 
   <script src="app.js"></script>
-  <script>QueueCare.setupAuth('patient','login');</script>
+  <script>QueueCare.setupAuth('patient', 'login');</script>
 </body>
 </html>

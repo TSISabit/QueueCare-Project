@@ -7,17 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <section class="auth-wrap">
     <div class="auth-grid">
       <div class="card auth-panel">
-        <span class="eyebrow" style="background:rgba(255,255,255,.15);color:#fff;">Patient Registration</span>
-        <h1>Create a new patient account</h1>
-        <p>
-          Register once to search doctors, book appointments, and manage your own records.
-        </p>
+        <span class="eyebrow light">Patient Registration</span>
+        <h1>Create your patient account</h1>
+        <p>Register once to search doctors, book appointments, and track your queue position.</p>
 
         <div class="auth-links">
           <a class="auth-chip" href="index.html">Home</a>
@@ -26,17 +24,17 @@
       </div>
 
       <div class="card auth-form">
-        <h2>Patient Register</h2>
-        <div id="authNotice" class="notice">Fill in your information to create a patient account.</div>
+        <h2>Patient Registration</h2>
+        <div id="authNotice" class="notice">Please fill in your details to create a patient account.</div>
 
-        <form id="authForm" class="form-grid" style="margin-top:16px;">
+        <form id="authForm" class="form-grid" style="margin-top:16px;" novalidate>
           <div class="field">
             <label>Full Name</label>
             <input type="text" name="name" required />
           </div>
 
           <div class="field">
-            <label>Email</label>
+            <label>Email Address</label>
             <input type="email" name="email" required />
           </div>
 
@@ -46,13 +44,13 @@
           </div>
 
           <div class="field">
-            <label>Phone</label>
+            <label>Phone Number</label>
             <input type="text" name="phone" />
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Register as Patient</button>
-            <a class="btn btn-outline" href="patient-login.html">Already have account</a>
+            <button class="btn btn-primary" type="submit">Create Account</button>
+            <a class="btn btn-outline" href="patient-login.html">Already Registered</a>
           </div>
         </form>
       </div>
@@ -60,6 +58,6 @@
   </section>
 
   <script src="app.js"></script>
-  <script>QueueCare.setupAuth('patient','register');</script>
+  <script>QueueCare.setupAuth('patient', 'register');</script>
 </body>
 </html>
