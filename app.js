@@ -3,6 +3,25 @@ const QueueCare = (() => {
   let doctorChartRef = null;
   let patientWaitInterval = null;
 
+  const API_BASE = "http://127.0.0.1:8000";
+  const WS_BASE = "ws://127.0.0.1:8000/ws/live";
+
+  async function api(url, method = "GET", body = null) {
+    const res = await fetch(API_BASE + url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : null,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "API request failed.");
+    }
+
+    return data;
+  }
+
   function read(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
@@ -17,32 +36,32 @@ const QueueCare = (() => {
   }
 
   function boot() {
-    if (!localStorage.getItem('qc_initialized')) {
-      write('qc_patient_users', []);
-      write('qc_doctor_users', []);
-      write('qc_doctors', []);
-      write('qc_appointments', []);
-      write('qc_patient_history', []);
-      localStorage.setItem('qc_initialized', 'true');
+    if (!localStorage.getItem("qc_initialized")) {
+      write("qc_patient_users", []);
+      write("qc_doctor_users", []);
+      write("qc_doctors", []);
+      write("qc_appointments", []);
+      write("qc_patient_history", []);
+      localStorage.setItem("qc_initialized", "true");
     }
   }
 
   function getActiveRole() {
-    return localStorage.getItem('qc_active_role') || '';
+    return localStorage.getItem("qc_active_role") || "";
   }
 
   function getSessionUser() {
-    return read('qc_session_user', null);
+    return read("qc_session_user", null);
   }
 
   function setSession(role, user) {
-    localStorage.setItem('qc_active_role', role);
-    write('qc_session_user', user);
+    localStorage.setItem("qc_active_role", role);
+    write("qc_session_user", user);
   }
 
   function clearSession() {
-    localStorage.removeItem('qc_active_role');
-    localStorage.removeItem('qc_session_user');
+    localStorage.removeItem("qc_active_role");
+    localStorage.removeItem("qc_session_user");
   }
 
   function currentUser(role) {
@@ -53,9 +72,8 @@ const QueueCare = (() => {
   }
 
   function redirectAfterAuth(role) {
-    window.location.href = role === 'doctor'
-      ? 'doctor-dashboard.html'
-      : 'patient-dashboard.html';
+    window.location.href =
+      role === "doctor" ? "doctor-dashboard.html" : "patient-dashboard.html";
   }
 
   function requireRole(role) {
@@ -64,9 +82,8 @@ const QueueCare = (() => {
 
     if (activeRole === role && user) return user;
 
-    window.location.href = role === 'doctor'
-      ? 'doctor-login.html'
-      : 'patient-login.html';
+    window.location.href =
+      role === "doctor" ? "doctor-login.html" : "patient-login.html";
     return null;
   }
 
@@ -80,37 +97,66 @@ const QueueCare = (() => {
   function handleLogout() {
     stopPatientWaitUpdates();
     clearSession();
-    window.location.href = 'index.html';
+    window.location.href = "index.html";
   }
 
   function getInitials(name) {
-    if (!name) return 'U';
-    return name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map(part => part[0]?.toUpperCase() || '')
-      .join('') || 'U';
+    if (!name) return "U";
+    return (
+      name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() || "")
+        .join("") || "U"
+    );
   }
 
   function formatMinutesToHMS(totalMinutes) {
-    const totalSeconds = Math.max(0, Math.round(Number(totalMinutes || 0) * 60));
+    const totalSeconds = Math.max(
+      0,
+      Math.round(Number(totalMinutes || 0) * 60),
+    );
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
     return [
-      String(hours).padStart(2, '0'),
-      String(minutes).padStart(2, '0'),
-      String(seconds).padStart(2, '0')
-    ].join(':');
+      String(hours).padStart(2, "0"),
+      String(minutes).padStart(2, "0"),
+      String(seconds).padStart(2, "0"),
+    ].join(":");
+  }
+  function startPatientCountdown(waitMinutes) {
+    stopPatientWaitUpdates();
+
+    let remainingSeconds = Math.max(
+      0,
+      Math.round(Number(waitMinutes || 0) * 60),
+    );
+
+    const kpiEta = document.getElementById("kpiEta");
+    if (kpiEta) kpiEta.textContent = formatMinutesToHMS(remainingSeconds / 60);
+
+    patientWaitInterval = setInterval(() => {
+      if (remainingSeconds <= 0) {
+        stopPatientWaitUpdates();
+        return;
+      }
+
+      remainingSeconds--;
+
+      const kpiEta = document.getElementById("kpiEta");
+      if (kpiEta)
+        kpiEta.textContent = formatMinutesToHMS(remainingSeconds / 60);
+    }, 1000);
   }
 
   function renderNavbar() {
-    const mount = document.getElementById('navbarMount');
+    const mount = document.getElementById("navbarMount");
     if (!mount) return;
 
-    const page = document.body.dataset.page || '';
+    const page = document.body.dataset.page || "";
     const activeRole = getActiveRole();
 
     let rightLinks = `
@@ -118,17 +164,17 @@ const QueueCare = (() => {
       <a class="btn btn-outline" href="doctor-login.html">Doctor Login</a>
     `;
 
-    if (activeRole === 'patient') {
+    if (activeRole === "patient") {
       rightLinks = `
-        <a class="nav-link ${page === 'patient-dashboard' ? 'active' : ''}" href="patient-dashboard.html">Dashboard</a>
-        <a class="nav-link ${page === 'patient-history' ? 'active' : ''}" href="patient-history.html">History</a>
+        <a class="nav-link ${page === "patient-dashboard" ? "active" : ""}" href="patient-dashboard.html">Dashboard</a>
+        <a class="nav-link ${page === "patient-history" ? "active" : ""}" href="patient-history.html">History</a>
         <button class="btn btn-outline" onclick="QueueCare.handleLogout()">Logout</button>
       `;
     }
 
-    if (activeRole === 'doctor') {
+    if (activeRole === "doctor") {
       rightLinks = `
-        <a class="nav-link ${page === 'doctor-dashboard' ? 'active' : ''}" href="doctor-dashboard.html">Doctor Portal</a>
+        <a class="nav-link ${page === "doctor-dashboard" ? "active" : ""}" href="doctor-dashboard.html">Doctor Portal</a>
         <button class="btn btn-outline" onclick="QueueCare.handleLogout()">Logout</button>
       `;
     }
@@ -142,7 +188,7 @@ const QueueCare = (() => {
           </a>
 
           <nav class="nav-links">
-            <a class="nav-link ${page === 'home' ? 'active' : ''}" href="index.html">Home</a>
+            <a class="nav-link ${page === "home" ? "active" : ""}" href="index.html">Home</a>
           </nav>
 
           <div class="nav-actions">${rightLinks}</div>
@@ -152,28 +198,72 @@ const QueueCare = (() => {
   }
 
   function setupAuth(role, mode) {
-    const form = document.getElementById('authForm');
-    if (!form || form.dataset.bound === 'true') return;
-    form.dataset.bound = 'true';
+    const form = document.getElementById("authForm");
+    if (!form || form.dataset.bound === "true") return;
+    form.dataset.bound = "true";
 
-    form.addEventListener('submit', function (e) {
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const fd = new FormData(form);
-      const notice = document.getElementById('authNotice');
+      const notice = document.getElementById("authNotice");
 
-      const name = String(fd.get('name') || '').trim();
-      const email = String(fd.get('email') || '').trim().toLowerCase();
-      const password = String(fd.get('password') || '').trim();
+      const name = String(fd.get("name") || "").trim();
+      const email = String(fd.get("email") || "")
+        .trim()
+        .toLowerCase();
+      const password = String(fd.get("password") || "").trim();
 
-      const usersKey = role === 'doctor' ? 'qc_doctor_users' : 'qc_patient_users';
+      try {
+        let apiRes = null;
+
+        if (role === "patient" && mode === "register") {
+          apiRes = await api(
+            "/api/patient/register/",
+            "POST",
+            Object.fromEntries(fd.entries()),
+          );
+        }
+
+        if (role === "patient" && mode === "login") {
+          apiRes = await api("/api/patient/login/", "POST", {
+            email,
+            password,
+          });
+        }
+
+        if (role === "doctor" && mode === "register") {
+          apiRes = await api(
+            "/api/doctor/register/",
+            "POST",
+            Object.fromEntries(fd.entries()),
+          );
+        }
+
+        if (role === "doctor" && mode === "login") {
+          apiRes = await api("/api/doctor/login/", "POST", { email, password });
+        }
+
+        if (apiRes && !apiRes.error) {
+          setSession(role, apiRes);
+          redirectAfterAuth(role);
+          return;
+        }
+      } catch (err) {
+        console.log("Backend auth failed, using localStorage fallback.");
+      }
+
+      const usersKey =
+        role === "doctor" ? "qc_doctor_users" : "qc_patient_users";
       const users = read(usersKey, []);
 
-      if (mode === 'login') {
-        const found = users.find(u => u.email === email && u.password === password);
+      if (mode === "login") {
+        const found = users.find(
+          (u) => u.email === email && u.password === password,
+        );
 
         if (!found) {
-          if (notice) notice.textContent = 'Invalid email or password.';
+          if (notice) notice.textContent = "Invalid email or password.";
           return;
         }
 
@@ -183,16 +273,18 @@ const QueueCare = (() => {
       }
 
       if (!name || !email || !password) {
-        if (notice) notice.textContent = 'Please complete all required fields.';
+        if (notice) notice.textContent = "Please complete all required fields.";
         return;
       }
 
-      if (users.some(u => u.email === email)) {
-        if (notice) notice.textContent = 'An account with this email already exists.';
+      if (users.some((u) => u.email === email)) {
+        if (notice)
+          notice.textContent = "An account with this email already exists.";
         return;
       }
 
       const newUser = Object.fromEntries(fd.entries());
+      newUser.id = `${role}-${Date.now()}`;
       newUser.name = name;
       newUser.email = email;
       newUser.password = password;
@@ -200,22 +292,22 @@ const QueueCare = (() => {
       users.push(newUser);
       write(usersKey, users);
 
-      if (role === 'doctor') {
-        const doctors = read('qc_doctors', []);
+      if (role === "doctor") {
+        const doctors = read("qc_doctors", []);
         doctors.push({
-          id: `doc-${Date.now()}`,
+          id: newUser.id,
           email: newUser.email,
           name: newUser.name,
-          specialty: newUser.specialty || '',
+          specialty: newUser.specialty || "",
           diseases: [],
-          hospital: newUser.hospital || '',
-          location: '',
-          experience: '',
-          fee: '',
+          hospital: newUser.hospital || "",
+          location: "",
+          experience: "",
+          fee: "",
           duration: 10,
-          slots: []
+          slots: [],
         });
-        write('qc_doctors', doctors);
+        write("qc_doctors", doctors);
       }
 
       setSession(role, newUser);
@@ -224,45 +316,47 @@ const QueueCare = (() => {
   }
 
   function getLoggedDoctorProfile() {
-    const user = currentUser('doctor');
+    const user = currentUser("doctor");
     if (!user) return null;
-    const doctors = read('qc_doctors', []);
-    return doctors.find(d => d.email === user.email) || null;
+    const doctors = read("qc_doctors", []);
+    return doctors.find((d) => d.email === user.email) || null;
   }
 
   function getDoctorById(id) {
-    const doctors = read('qc_doctors', []);
-    return doctors.find(d => d.id === id) || null;
+    const doctors = read("qc_doctors", []);
+    return doctors.find((d) => d.id === id) || null;
   }
 
   function updateDoctorRecord(updatedDoctor) {
-    const doctors = read('qc_doctors', []);
-    const index = doctors.findIndex(d => d.id === updatedDoctor.id);
+    const doctors = read("qc_doctors", []);
+    const index = doctors.findIndex((d) => d.id === updatedDoctor.id);
     if (index === -1) return;
     doctors[index] = updatedDoctor;
-    write('qc_doctors', doctors);
+    write("qc_doctors", doctors);
 
     const sessionUser = getSessionUser();
     if (sessionUser && sessionUser.email === updatedDoctor.email) {
       sessionUser.name = updatedDoctor.name;
       sessionUser.specialty = updatedDoctor.specialty;
       sessionUser.hospital = updatedDoctor.hospital;
-      setSession('doctor', sessionUser);
+      setSession("doctor", sessionUser);
     }
 
-    const doctorUsers = read('qc_doctor_users', []);
-    const userIndex = doctorUsers.findIndex(u => u.email === updatedDoctor.email);
+    const doctorUsers = read("qc_doctor_users", []);
+    const userIndex = doctorUsers.findIndex(
+      (u) => u.email === updatedDoctor.email,
+    );
     if (userIndex !== -1) {
       doctorUsers[userIndex].name = updatedDoctor.name;
       doctorUsers[userIndex].specialty = updatedDoctor.specialty;
       doctorUsers[userIndex].hospital = updatedDoctor.hospital;
-      write('qc_doctor_users', doctorUsers);
+      write("qc_doctor_users", doctorUsers);
     }
   }
 
   function parseSlotStart(dateStr, slotStr) {
     if (!dateStr || !slotStr) return null;
-    const firstPart = slotStr.split('-')[0]?.trim();
+    const firstPart = slotStr.split("-")[0]?.trim();
     if (!firstPart) return null;
 
     const match = firstPart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -272,8 +366,8 @@ const QueueCare = (() => {
     const minute = Number(match[2]);
     const meridiem = match[3].toUpperCase();
 
-    if (meridiem === 'PM' && hour !== 12) hour += 12;
-    if (meridiem === 'AM' && hour === 12) hour = 0;
+    if (meridiem === "PM" && hour !== 12) hour += 12;
+    if (meridiem === "AM" && hour === 12) hour = 0;
 
     const dt = new Date(`${dateStr}T00:00:00`);
     dt.setHours(hour, minute, 0, 0);
@@ -284,10 +378,10 @@ const QueueCare = (() => {
     const doctor = getDoctorById(doctorId);
     if (!doctor) return;
 
-    const appointments = read('qc_appointments', []);
+    const appointments = read("qc_appointments", []);
 
     const active = appointments
-      .filter(app => app.doctorId === doctorId && app.status !== 'Completed')
+      .filter((app) => app.doctorId === doctorId && app.status !== "Completed")
       .sort((a, b) => {
         const aTime = parseSlotStart(a.date, a.slot)?.getTime() || 0;
         const bTime = parseSlotStart(b.date, b.slot)?.getTime() || 0;
@@ -300,48 +394,60 @@ const QueueCare = (() => {
 
     const recalculated = active.map((app, index) => {
       const slotStart = parseSlotStart(app.date, app.slot);
-      const baseFromSlot = slotStart ? Math.max(0, Math.ceil((slotStart.getTime() - now.getTime()) / 60000)) : 0;
+      const baseFromSlot = slotStart
+        ? Math.max(0, Math.ceil((slotStart.getTime() - now.getTime()) / 60000))
+        : 0;
       const queueOffset = index * Number(doctor.duration || 10);
       cascadingDelay += Number(app.extraDelay || 0);
 
       return {
         ...app,
         serial: index + 1,
-        waitMinutes: baseFromSlot + queueOffset + cascadingDelay
+        waitMinutes: baseFromSlot + queueOffset + cascadingDelay,
       };
     });
 
-    const activeIds = new Set(recalculated.map(app => app.id));
-    const updated = appointments.map(app => {
+    const activeIds = new Set(recalculated.map((app) => app.id));
+    const updated = appointments.map((app) => {
       if (!activeIds.has(app.id)) return app;
-      return recalculated.find(item => item.id === app.id) || app;
+      return recalculated.find((item) => item.id === app.id) || app;
     });
 
-    write('qc_appointments', updated);
+    write("qc_appointments", updated);
   }
 
   function getTotalActiveDelay(doctorId) {
-    return read('qc_appointments', [])
-      .filter(app => app.doctorId === doctorId && app.status !== 'Completed')
+    return read("qc_appointments", [])
+      .filter((app) => app.doctorId === doctorId && app.status !== "Completed")
       .reduce((sum, app) => sum + Number(app.extraDelay || 0), 0);
   }
 
   function renderDoctorSearch(doctors) {
-    const mount = document.getElementById('doctorResults');
+    const mount = document.getElementById("doctorResults");
     if (!mount) return;
 
-    const query = (document.getElementById('doctorSearch')?.value || '').toLowerCase();
-    const disease = (document.getElementById('diseaseSearch')?.value || '').toLowerCase();
-    const hospital = (document.getElementById('hospitalSearch')?.value || '').toLowerCase();
+    const query = (
+      document.getElementById("doctorSearch")?.value || ""
+    ).toLowerCase();
+    const disease = (
+      document.getElementById("diseaseSearch")?.value || ""
+    ).toLowerCase();
+    const hospital = (
+      document.getElementById("hospitalSearch")?.value || ""
+    ).toLowerCase();
 
-    const filtered = doctors.filter(doc => {
-      const queryText = [doc.name, doc.specialty, doc.location].join(' ').toLowerCase();
-      const diseaseText = (doc.diseases || []).join(' ').toLowerCase();
-      const hospitalText = (doc.hospital || '').toLowerCase();
+    const filtered = doctors.filter((doc) => {
+      const queryText = [doc.name, doc.specialty, doc.location]
+        .join(" ")
+        .toLowerCase();
+      const diseaseText = (doc.diseases || []).join(" ").toLowerCase();
+      const hospitalText = (doc.hospital || "").toLowerCase();
 
-      return (!query || queryText.includes(query)) &&
-             (!disease || diseaseText.includes(disease)) &&
-             (!hospital || hospitalText.includes(hospital));
+      return (
+        (!query || queryText.includes(query)) &&
+        (!disease || diseaseText.includes(disease)) &&
+        (!hospital || hospitalText.includes(hospital))
+      );
     });
 
     if (!filtered.length) {
@@ -349,45 +455,55 @@ const QueueCare = (() => {
       return;
     }
 
-    mount.innerHTML = filtered.map(doc => `
+    mount.innerHTML = filtered
+      .map(
+        (doc) => `
       <div class="doctor-item">
         <div class="doctor-head">
           <div>
-            <h3>${doc.name || 'Doctor'}</h3>
-            <div class="muted">${doc.specialty || 'Specialty not added'}</div>
+            <h3>${doc.name || "Doctor"}</h3>
+            <div class="muted">${doc.specialty || "Specialty not added"}</div>
           </div>
         </div>
-        <p class="muted">${doc.hospital || 'Hospital not added'}${doc.location ? ', ' + doc.location : ''}</p>
+        <p class="muted">${doc.hospital || "Hospital not added"}${doc.location ? ", " + doc.location : ""}</p>
         <div class="tag-row">
-          ${(doc.diseases || []).length
-            ? doc.diseases.map(item => `<span class="tag gray">${item}</span>`).join('')
-            : '<span class="tag gray">No disease tags yet</span>'}
+          ${
+            (doc.diseases || []).length
+              ? doc.diseases
+                  .map((item) => `<span class="tag gray">${item}</span>`)
+                  .join("")
+              : '<span class="tag gray">No disease tags yet</span>'
+          }
         </div>
         <div class="split" style="margin-top:14px;">
           <div class="small muted">
-            ${doc.experience ? doc.experience : 'Experience not added'}
-            ${doc.fee ? ` • Fee: ৳${doc.fee}` : ''}
+            ${doc.experience ? doc.experience : "Experience not added"}
+            ${doc.fee ? ` • Fee: ৳${doc.fee}` : ""}
           </div>
           <button class="btn btn-primary" onclick="QueueCare.quickSelectDoctor('${doc.id}')">Select</button>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   function bindSearch() {
-    ['doctorSearch', 'diseaseSearch', 'hospitalSearch'].forEach(id => {
+    ["doctorSearch", "diseaseSearch", "hospitalSearch"].forEach((id) => {
       const el = document.getElementById(id);
-      if (el && el.dataset.bound !== 'true') {
-        el.dataset.bound = 'true';
-        el.addEventListener('input', () => renderDoctorSearch(read('qc_doctors', [])));
+      if (el && el.dataset.bound !== "true") {
+        el.dataset.bound = "true";
+        el.addEventListener("input", () =>
+          renderDoctorSearch(read("qc_doctors", [])),
+        );
       }
     });
   }
 
   function populateDoctorSelect() {
-    const doctors = read('qc_doctors', []);
-    const select = document.getElementById('appointmentDoctor');
-    const slotSelect = document.getElementById('appointmentSlot');
+    const doctors = read("qc_doctors", []);
+    const select = document.getElementById("appointmentDoctor");
+    const slotSelect = document.getElementById("appointmentSlot");
     if (!select || !slotSelect) return;
 
     if (!doctors.length) {
@@ -396,22 +512,26 @@ const QueueCare = (() => {
       return;
     }
 
-    select.innerHTML = doctors.map(doc => `
-      <option value="${doc.id}">${doc.name} — ${doc.specialty || 'Specialty not added'}</option>
-    `).join('');
+    select.innerHTML = doctors
+      .map(
+        (doc) => `
+      <option value="${doc.id}">${doc.name} — ${doc.specialty || "Specialty not added"}</option>
+    `,
+      )
+      .join("");
 
     updatePatientSlotOptions(select.value);
 
-    if (select.dataset.bound !== 'true') {
-      select.dataset.bound = 'true';
-      select.addEventListener('change', function () {
+    if (select.dataset.bound !== "true") {
+      select.dataset.bound = "true";
+      select.addEventListener("change", function () {
         updatePatientSlotOptions(this.value);
       });
     }
   }
 
   function updatePatientSlotOptions(doctorId) {
-    const slotSelect = document.getElementById('appointmentSlot');
+    const slotSelect = document.getElementById("appointmentSlot");
     if (!slotSelect) return;
 
     const doctor = getDoctorById(doctorId);
@@ -421,65 +541,72 @@ const QueueCare = (() => {
       return;
     }
 
-    slotSelect.innerHTML = doctor.slots.map(slot => `
+    slotSelect.innerHTML = doctor.slots
+      .map(
+        (slot) => `
       <option value="${slot}">${slot}</option>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   function quickSelectDoctor(doctorId) {
-    const select = document.getElementById('appointmentDoctor');
+    const select = document.getElementById("appointmentDoctor");
     if (!select) return;
     select.value = doctorId;
     updatePatientSlotOptions(doctorId);
 
-    const form = document.getElementById('appointmentForm');
-    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const form = document.getElementById("appointmentForm");
+    if (form) form.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function bindAppointmentForm() {
-    const form = document.getElementById('appointmentForm');
-    if (!form || form.dataset.bound === 'true') return;
-    form.dataset.bound = 'true';
+    const form = document.getElementById("appointmentForm");
+    if (!form || form.dataset.bound === "true") return;
+    form.dataset.bound = "true";
 
-    form.addEventListener('submit', function (e) {
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
 
-      const patient = requireRole('patient');
+      const patient = requireRole("patient");
       if (!patient) return;
 
       const fd = new FormData(form);
-      const doctorId = String(fd.get('doctorId') || '');
-      const date = String(fd.get('date') || '');
-      const slot = String(fd.get('slot') || '');
+      const doctorId = String(fd.get("doctorId") || "");
+      const date = String(fd.get("date") || "");
+      const slot = String(fd.get("slot") || "");
       const doctor = getDoctorById(doctorId);
-      const notice = document.getElementById('appointmentNotice');
+      const notice = document.getElementById("appointmentNotice");
 
       if (!doctor) {
-        if (notice) notice.textContent = 'Please select a valid doctor.';
+        if (notice) notice.textContent = "Please select a valid doctor.";
         return;
       }
 
       if (!date || !slot) {
-        if (notice) notice.textContent = 'Please select both date and slot.';
+        if (notice) notice.textContent = "Please select both date and slot.";
         return;
       }
 
       if (!doctor.slots || !doctor.slots.includes(slot)) {
-        if (notice) notice.textContent = 'Selected slot is not available for this doctor.';
+        if (notice)
+          notice.textContent =
+            "Selected slot is not available for this doctor.";
         return;
       }
 
-      const appointments = read('qc_appointments', []);
-      const duplicate = appointments.find(app =>
-        app.doctorId === doctorId &&
-        app.date === date &&
-        app.slot === slot &&
-        app.patientEmail === patient.email &&
-        app.status !== 'Completed'
+      const appointments = read("qc_appointments", []);
+      const duplicate = appointments.find(
+        (app) =>
+          app.doctorId === doctorId &&
+          app.date === date &&
+          app.slot === slot &&
+          app.patientEmail === patient.email &&
+          app.status !== "Completed",
       );
 
       if (duplicate) {
-        if (notice) notice.textContent = 'You already booked this slot.';
+        if (notice) notice.textContent = "You already booked this slot.";
         return;
       }
 
@@ -494,170 +621,189 @@ const QueueCare = (() => {
         serial: 0,
         waitMinutes: 0,
         extraDelay: 0,
-        status: 'Booked',
-        createdAt: new Date().toISOString()
+        status: "Booked",
+        createdAt: new Date().toISOString(),
       };
 
       appointments.push(newAppointment);
-      write('qc_appointments', appointments);
+      write("qc_appointments", appointments);
       recalculateDoctorQueue(doctor.id);
 
-      const updatedAppointments = read('qc_appointments', []);
-      const saved = updatedAppointments.find(app => app.id === newAppointment.id);
+      const updatedAppointments = read("qc_appointments", []);
+      const saved = updatedAppointments.find(
+        (app) => app.id === newAppointment.id,
+      );
 
-      const history = read('qc_patient_history', []);
+      const history = read("qc_patient_history", []);
       history.unshift({
         doctor: doctor.name,
-        specialty: doctor.specialty || '',
+        specialty: doctor.specialty || "",
         date,
-        hospital: doctor.hospital || '',
-        summary: `Appointment booked for ${slot}`
+        hospital: doctor.hospital || "",
+        summary: `Appointment booked for ${slot}`,
       });
-      write('qc_patient_history', history);
+      write("qc_patient_history", history);
 
       if (notice) {
-        notice.textContent = `Appointment confirmed with ${doctor.name}. Your serial is ${saved?.serial || '-'} and estimated wait is ${formatMinutesToHMS(saved?.waitMinutes || 0)}.`;
+        notice.textContent = `Appointment confirmed with ${doctor.name}. Your serial is ${saved?.serial || "-"} and estimated wait is ${formatMinutesToHMS(saved?.waitMinutes || 0)}.`;
       }
 
       updatePatientDashboardLiveOnly();
-      renderPatientHistoryMini(read('qc_patient_history', []).filter(Boolean));
+      renderPatientHistoryMini(read("qc_patient_history", []).filter(Boolean));
       renderPatientChart();
     });
   }
 
   function getLatestPatientAppointment(patientEmail) {
-    const appointments = read('qc_appointments', []);
+    const appointments = read("qc_appointments", []);
     const patientApps = appointments
-      .filter(app => app.patientEmail === patientEmail && app.status !== 'Completed')
+      .filter(
+        (app) =>
+          app.patientEmail === patientEmail && app.status !== "Completed",
+      )
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return patientApps[0] || null;
   }
 
   function renderPatientHistoryMini(history) {
-    const mount = document.getElementById('patientHistoryMini');
+    const mount = document.getElementById("patientHistoryMini");
     if (!mount) return;
 
     if (!history.length) {
-      mount.innerHTML = '<div class="empty-state">No consultation history available yet.</div>';
+      mount.innerHTML =
+        '<div class="empty-state">No consultation history available yet.</div>';
       return;
     }
 
-    mount.innerHTML = history.slice(0, 5).map(item => `
+    mount.innerHTML = history
+      .slice(0, 5)
+      .map(
+        (item) => `
       <div class="history-item">
         <div class="history-head">
           <div>
-            <strong>${item.doctor || '-'}</strong>
-            <div class="muted small">${item.specialty || '-'}</div>
+            <strong>${item.doctor || "-"}</strong>
+            <div class="muted small">${item.specialty || "-"}</div>
           </div>
-          <span class="tag gray">${item.date || '-'}</span>
+          <span class="tag gray">${item.date || "-"}</span>
         </div>
-        <p class="muted small">${item.hospital || '-'}</p>
-        <p class="small">${item.summary || '-'}</p>
+        <p class="muted small">${item.hospital || "-"}</p>
+        <p class="small">${item.summary || "-"}</p>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   function updatePatientDashboardLiveOnly() {
-    const user = currentUser('patient');
+    const user = currentUser("patient");
     if (!user) return;
 
     const latestAppointment = getLatestPatientAppointment(user.email);
-    const patientName = document.getElementById('patientName');
-    const kpiLine = document.getElementById('kpiLine');
-    const kpiSerial = document.getElementById('kpiSerial');
-    const kpiEta = document.getElementById('kpiEta');
-    const kpiStatus = document.getElementById('kpiStatus');
-    const queueDoctor = document.getElementById('queueDoctor');
-    const queueInfo = document.getElementById('queueInfo');
+    const patientName = document.getElementById("patientName");
+    const kpiLine = document.getElementById("kpiLine");
+    const kpiSerial = document.getElementById("kpiSerial");
+    const kpiEta = document.getElementById("kpiEta");
+    const kpiStatus = document.getElementById("kpiStatus");
+    const queueDoctor = document.getElementById("queueDoctor");
+    const queueInfo = document.getElementById("queueInfo");
 
-    if (patientName) patientName.textContent = user.name || 'Patient';
+    if (patientName) patientName.textContent = user.name || "Patient";
 
     if (latestAppointment) {
       recalculateDoctorQueue(latestAppointment.doctorId);
       const refreshed = getLatestPatientAppointment(user.email);
 
-      if (kpiLine) kpiLine.textContent = Math.max((refreshed?.serial || 1) - 1, 0);
-      if (kpiSerial) kpiSerial.textContent = refreshed?.serial || '-';
-      if (kpiEta) kpiEta.textContent = formatMinutesToHMS(refreshed?.waitMinutes || 0);
-      if (kpiStatus) kpiStatus.textContent = refreshed?.status || '-';
-      if (queueDoctor) queueDoctor.textContent = refreshed?.doctorName || 'No doctor selected';
-      if (queueInfo) queueInfo.textContent = `Date: ${refreshed?.date || '-'} • Slot: ${refreshed?.slot || '-'}`;
+      if (kpiLine)
+        kpiLine.textContent = Math.max((refreshed?.serial || 1) - 1, 0);
+      if (kpiSerial) kpiSerial.textContent = refreshed?.serial || "-";
+      if (kpiEta) startPatientCountdown(refreshed?.waitMinutes || 0);
+      if (kpiStatus) kpiStatus.textContent = refreshed?.status || "-";
+      if (queueDoctor)
+        queueDoctor.textContent = refreshed?.doctorName || "No doctor selected";
+      if (queueInfo)
+        queueInfo.textContent = `Date: ${refreshed?.date || "-"} • Slot: ${refreshed?.slot || "-"}`;
     } else {
       if (kpiLine) kpiLine.textContent = 0;
-      if (kpiSerial) kpiSerial.textContent = '-';
-      if (kpiEta) kpiEta.textContent = '-';
-      if (kpiStatus) kpiStatus.textContent = 'No Active Appointment';
-      if (queueDoctor) queueDoctor.textContent = 'No doctor selected';
-      if (queueInfo) queueInfo.textContent = 'Date: - • Slot: -';
+      if (kpiSerial) kpiSerial.textContent = "-";
+      if (kpiEta) kpiEta.textContent = "-";
+      if (kpiStatus) kpiStatus.textContent = "No Active Appointment";
+      if (queueDoctor) queueDoctor.textContent = "No doctor selected";
+      if (queueInfo) queueInfo.textContent = "Date: - • Slot: -";
     }
   }
 
   function renderPatientDashboard() {
-    const user = requireRole('patient');
+    const user = requireRole("patient");
     if (!user) return;
 
-    const doctors = read('qc_doctors', []);
-    const history = read('qc_patient_history', []).filter(Boolean);
+    const doctors = read("qc_doctors", []);
+    const history = read("qc_patient_history", []).filter(Boolean);
 
     updatePatientDashboardLiveOnly();
     renderDoctorSearch(doctors);
     populateDoctorSelect();
     bindAppointmentForm();
-    renderPatientHistoryMini(history.filter(item => item.doctor));
+    renderPatientHistoryMini(history.filter((item) => item.doctor));
     renderPatientChart();
   }
 
   function renderPatientHistoryPage() {
-    const user = requireRole('patient');
+    const user = requireRole("patient");
     if (!user) return;
 
-    const appointments = read('qc_appointments', [])
-      .filter(app => app.patientEmail === user.email)
+    const appointments = read("qc_appointments", [])
+      .filter((app) => app.patientEmail === user.email)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const profileName = document.getElementById('profileName');
-    const profileEmail = document.getElementById('profileEmail');
-    const profilePhone = document.getElementById('profilePhone');
-    const profileAvatar = document.getElementById('profileAvatar');
-    const mount = document.getElementById('fullPatientHistory');
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const profilePhone = document.getElementById("profilePhone");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const mount = document.getElementById("fullPatientHistory");
 
-    if (profileName) profileName.textContent = user.name || '-';
-    if (profileEmail) profileEmail.textContent = user.email || '-';
-    if (profilePhone) profilePhone.textContent = user.phone || '-';
+    if (profileName) profileName.textContent = user.name || "-";
+    if (profileEmail) profileEmail.textContent = user.email || "-";
+    if (profilePhone) profilePhone.textContent = user.phone || "-";
     if (profileAvatar) profileAvatar.textContent = getInitials(user.name);
 
     if (!mount) return;
 
     if (!appointments.length) {
-      mount.innerHTML = '<div class="empty-state">No patient history has been recorded yet.</div>';
+      mount.innerHTML =
+        '<div class="empty-state">No patient history has been recorded yet.</div>';
       return;
     }
 
-    mount.innerHTML = appointments.map(app => `
+    mount.innerHTML = appointments
+      .map(
+        (app) => `
       <div class="timeline-item">
         <div class="history-head">
           <div>
-            <h3>${app.doctorName || '-'}</h3>
-            <div class="muted">Slot: ${app.slot || '-'} • Serial: ${app.serial || '-'}</div>
+            <h3>${app.doctorName || "-"}</h3>
+            <div class="muted">Slot: ${app.slot || "-"} • Serial: ${app.serial || "-"}</div>
           </div>
-          <span class="tag">${app.date || '-'}</span>
+          <span class="tag">${app.date || "-"}</span>
         </div>
-        <p class="small">Status: ${app.status || '-'} • Wait: ${formatMinutesToHMS(app.waitMinutes || 0)}</p>
+        <p class="small">Status: ${app.status || "-"} • Wait: ${formatMinutesToHMS(app.waitMinutes || 0)}</p>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   function loadDoctorProfileIntoForm(doctor) {
     const map = {
-      doctorProfileName: doctor.name || '',
-      doctorProfileSpecialty: doctor.specialty || '',
-      doctorProfileHospital: doctor.hospital || '',
-      doctorProfileLocation: doctor.location || '',
-      doctorProfileExperience: doctor.experience || '',
-      doctorProfileFee: doctor.fee || '',
-      doctorProfileDiseases: (doctor.diseases || []).join(', '),
-      doctorDurationInput: doctor.duration || 10
+      doctorProfileName: doctor.name || "",
+      doctorProfileSpecialty: doctor.specialty || "",
+      doctorProfileHospital: doctor.hospital || "",
+      doctorProfileLocation: doctor.location || "",
+      doctorProfileExperience: doctor.experience || "",
+      doctorProfileFee: doctor.fee || "",
+      doctorProfileDiseases: (doctor.diseases || []).join(", "),
+      doctorDurationInput: doctor.duration || 10,
     };
 
     Object.entries(map).forEach(([id, value]) => {
@@ -667,7 +813,7 @@ const QueueCare = (() => {
   }
 
   function renderDoctorScheduleTags(doctor) {
-    const mount = document.getElementById('doctorScheduleList');
+    const mount = document.getElementById("doctorScheduleList");
     if (!mount) return;
 
     if (!doctor.slots || !doctor.slots.length) {
@@ -675,20 +821,24 @@ const QueueCare = (() => {
       return;
     }
 
-    mount.innerHTML = doctor.slots.map(slot => `
+    mount.innerHTML = doctor.slots
+      .map(
+        (slot) => `
       <span class="tag">
         ${slot}
         <button type="button" class="tag-remove" onclick="QueueCare.removeDoctorSlot('${slot.replace(/'/g, "\\'")}')">×</button>
       </span>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   function bindDoctorProfileForm() {
-    const form = document.getElementById('doctorProfileForm');
-    if (!form || form.dataset.bound === 'true') return;
-    form.dataset.bound = 'true';
+    const form = document.getElementById("doctorProfileForm");
+    if (!form || form.dataset.bound === "true") return;
+    form.dataset.bound = "true";
 
-    form.addEventListener('submit', function (e) {
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
 
       const freshDoctor = getLoggedDoctorProfile();
@@ -696,48 +846,53 @@ const QueueCare = (() => {
 
       const updatedDoctor = {
         ...freshDoctor,
-        name: document.getElementById('doctorProfileName').value.trim(),
-        specialty: document.getElementById('doctorProfileSpecialty').value.trim(),
-        hospital: document.getElementById('doctorProfileHospital').value.trim(),
-        location: document.getElementById('doctorProfileLocation').value.trim(),
-        experience: document.getElementById('doctorProfileExperience').value.trim(),
-        fee: document.getElementById('doctorProfileFee').value.trim(),
-        diseases: document.getElementById('doctorProfileDiseases').value
-          .split(',')
-          .map(item => item.trim())
-          .filter(Boolean)
+        name: document.getElementById("doctorProfileName").value.trim(),
+        specialty: document
+          .getElementById("doctorProfileSpecialty")
+          .value.trim(),
+        hospital: document.getElementById("doctorProfileHospital").value.trim(),
+        location: document.getElementById("doctorProfileLocation").value.trim(),
+        experience: document
+          .getElementById("doctorProfileExperience")
+          .value.trim(),
+        fee: document.getElementById("doctorProfileFee").value.trim(),
+        diseases: document
+          .getElementById("doctorProfileDiseases")
+          .value.split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
       };
 
       updateDoctorRecord(updatedDoctor);
 
-      const notice = document.getElementById('doctorProfileNotice');
-      if (notice) notice.textContent = 'Doctor profile updated successfully.';
+      const notice = document.getElementById("doctorProfileNotice");
+      if (notice) notice.textContent = "Doctor profile updated successfully.";
     });
   }
 
   function bindDoctorScheduleForm() {
-    const form = document.getElementById('doctorScheduleForm');
-    if (!form || form.dataset.bound === 'true') return;
-    form.dataset.bound = 'true';
+    const form = document.getElementById("doctorScheduleForm");
+    if (!form || form.dataset.bound === "true") return;
+    form.dataset.bound = "true";
 
-    form.addEventListener('submit', function (e) {
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
 
       const freshDoctor = getLoggedDoctorProfile();
       if (!freshDoctor) return;
 
-      const slotInput = document.getElementById('doctorSlotInput');
-      const notice = document.getElementById('doctorScheduleNotice');
+      const slotInput = document.getElementById("doctorSlotInput");
+      const notice = document.getElementById("doctorScheduleNotice");
       const slot = slotInput.value.trim();
 
       if (!slot) {
-        if (notice) notice.textContent = 'Please enter a valid slot.';
+        if (notice) notice.textContent = "Please enter a valid slot.";
         return;
       }
 
       const updatedDoctor = {
         ...freshDoctor,
-        slots: [...(freshDoctor.slots || [])]
+        slots: [...(freshDoctor.slots || [])],
       };
 
       if (!updatedDoctor.slots.includes(slot)) {
@@ -745,10 +900,10 @@ const QueueCare = (() => {
       }
 
       updateDoctorRecord(updatedDoctor);
-      slotInput.value = '';
+      slotInput.value = "";
       renderDoctorScheduleTags(updatedDoctor);
 
-      if (notice) notice.textContent = 'Time slot added successfully.';
+      if (notice) notice.textContent = "Time slot added successfully.";
     });
   }
 
@@ -758,7 +913,7 @@ const QueueCare = (() => {
 
     const updatedDoctor = {
       ...doctor,
-      slots: (doctor.slots || []).filter(item => item !== slot)
+      slots: (doctor.slots || []).filter((item) => item !== slot),
     };
 
     updateDoctorRecord(updatedDoctor);
@@ -769,25 +924,27 @@ const QueueCare = (() => {
     const doctor = getLoggedDoctorProfile();
     if (!doctor) return;
 
-    const input = document.getElementById('doctorDurationInput');
-    const notice = document.getElementById('doctorQueueNotice');
+    const input = document.getElementById("doctorDurationInput");
+    const notice = document.getElementById("doctorQueueNotice");
     const value = Number(input?.value || 10);
 
     if (!value || value < 1) {
-      if (notice) notice.textContent = 'Please enter a valid duration in minutes.';
+      if (notice)
+        notice.textContent = "Please enter a valid duration in minutes.";
       return;
     }
 
     const updatedDoctor = {
       ...doctor,
-      duration: value
+      duration: value,
     };
 
     updateDoctorRecord(updatedDoctor);
     recalculateDoctorQueue(doctor.id);
     updateDoctorDashboardViewOnly();
 
-    if (notice) notice.textContent = `Consultation time updated to ${value} minutes per patient.`;
+    if (notice)
+      notice.textContent = `Consultation time updated to ${value} minutes per patient.`;
   }
 
   function applyDelayToAppointment(appointmentId) {
@@ -795,20 +952,21 @@ const QueueCare = (() => {
     if (!doctor) return;
 
     const input = document.getElementById(`delay-input-${appointmentId}`);
-    const notice = document.getElementById('doctorQueueNotice');
+    const notice = document.getElementById("doctorQueueNotice");
     const delay = Number(input?.value || 0);
 
     if (!delay || delay < 1) {
-      if (notice) notice.textContent = 'Please enter a valid delay amount.';
+      if (notice) notice.textContent = "Please enter a valid delay amount.";
       return;
     }
 
-    const appointments = read('qc_appointments', []);
-    const index = appointments.findIndex(app => app.id === appointmentId);
+    const appointments = read("qc_appointments", []);
+    const index = appointments.findIndex((app) => app.id === appointmentId);
     if (index === -1) return;
 
-    appointments[index].extraDelay = Number(appointments[index].extraDelay || 0) + delay;
-    write('qc_appointments', appointments);
+    appointments[index].extraDelay =
+      Number(appointments[index].extraDelay || 0) + delay;
+    write("qc_appointments", appointments);
 
     recalculateDoctorQueue(doctor.id);
     updateDoctorDashboardViewOnly();
@@ -819,23 +977,25 @@ const QueueCare = (() => {
   }
 
   function bindDoctorActions(doctor) {
-    const nextBtn = document.getElementById('nextPatientBtn');
-    if (nextBtn && nextBtn.dataset.bound !== 'true') {
-      nextBtn.dataset.bound = 'true';
-      nextBtn.addEventListener('click', function () {
-        const appointments = read('qc_appointments', []);
+    const nextBtn = document.getElementById("nextPatientBtn");
+    if (nextBtn && nextBtn.dataset.bound !== "true") {
+      nextBtn.dataset.bound = "true";
+      nextBtn.addEventListener("click", function () {
+        const appointments = read("qc_appointments", []);
         const active = appointments
-          .filter(app => app.doctorId === doctor.id && app.status !== 'Completed')
+          .filter(
+            (app) => app.doctorId === doctor.id && app.status !== "Completed",
+          )
           .sort((a, b) => a.serial - b.serial);
 
         if (!active.length) return;
 
         const currentId = active[0].id;
-        const updated = appointments.map(app =>
-          app.id === currentId ? { ...app, status: 'Completed' } : app
+        const updated = appointments.map((app) =>
+          app.id === currentId ? { ...app, status: "Completed" } : app,
         );
 
-        write('qc_appointments', updated);
+        write("qc_appointments", updated);
         recalculateDoctorQueue(doctor.id);
         updateDoctorDashboardViewOnly();
       });
@@ -849,33 +1009,40 @@ const QueueCare = (() => {
     recalculateDoctorQueue(doctor.id);
 
     const refreshedDoctor = getLoggedDoctorProfile();
-    const appointments = read('qc_appointments', [])
-      .filter(app => app.doctorId === refreshedDoctor.id)
+    const appointments = read("qc_appointments", [])
+      .filter((app) => app.doctorId === refreshedDoctor.id)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const activeQueue = appointments
-      .filter(app => app.status !== 'Completed')
+      .filter((app) => app.status !== "Completed")
       .sort((a, b) => a.serial - b.serial);
 
-    const doctorName = document.getElementById('doctorName');
-    const doctorNowServing = document.getElementById('doctorNowServing');
-    const doctorQueueCount = document.getElementById('doctorQueueCount');
-    const doctorEta = document.getElementById('doctorEta');
-    const doctorConsulted = document.getElementById('doctorConsulted');
-    const queueMount = document.getElementById('doctorQueueList');
-    const table = document.getElementById('doctorPatientsTable');
+    const doctorName = document.getElementById("doctorName");
+    const doctorNowServing = document.getElementById("doctorNowServing");
+    const doctorQueueCount = document.getElementById("doctorQueueCount");
+    const doctorEta = document.getElementById("doctorEta");
+    const doctorConsulted = document.getElementById("doctorConsulted");
+    const queueMount = document.getElementById("doctorQueueList");
+    const table = document.getElementById("doctorPatientsTable");
 
-    if (doctorName) doctorName.textContent = refreshedDoctor.name || 'Doctor';
-    if (doctorNowServing) doctorNowServing.textContent = activeQueue[0] ? activeQueue[0].patientName : '-';
+    if (doctorName) doctorName.textContent = refreshedDoctor.name || "Doctor";
+    if (doctorNowServing)
+      doctorNowServing.textContent = activeQueue[0]
+        ? activeQueue[0].patientName
+        : "-";
     if (doctorQueueCount) doctorQueueCount.textContent = activeQueue.length;
-    if (doctorEta) doctorEta.textContent = `${getTotalActiveDelay(refreshedDoctor.id)} mins`;
+    if (doctorEta)
+      doctorEta.textContent = `${getTotalActiveDelay(refreshedDoctor.id)} mins`;
     if (doctorConsulted) doctorConsulted.textContent = appointments.length;
 
     if (queueMount) {
       if (!activeQueue.length) {
-        queueMount.innerHTML = '<div class="empty-state">No patients in queue right now.</div>';
+        queueMount.innerHTML =
+          '<div class="empty-state">No patients in queue right now.</div>';
       } else {
-        queueMount.innerHTML = activeQueue.map(app => `
+        queueMount.innerHTML = activeQueue
+          .map(
+            (app) => `
           <div class="queue-entry">
             <div class="entry-head">
               <div>
@@ -885,7 +1052,9 @@ const QueueCare = (() => {
               <span class="tag success">${formatMinutesToHMS(app.waitMinutes)}</span>
             </div>
           </div>
-        `).join('');
+        `,
+          )
+          .join("");
       }
     }
 
@@ -899,29 +1068,36 @@ const QueueCare = (() => {
       } else {
         table.innerHTML = appointments
           .sort((a, b) => {
-            if (a.status === 'Completed' && b.status !== 'Completed') return 1;
-            if (a.status !== 'Completed' && b.status === 'Completed') return -1;
+            if (a.status === "Completed" && b.status !== "Completed") return 1;
+            if (a.status !== "Completed" && b.status === "Completed") return -1;
             return a.serial - b.serial;
           })
-          .map(app => `
+          .map(
+            (app) => `
             <tr>
-              <td>${app.serial || '-'}</td>
-              <td>${app.patientName || '-'}</td>
-              <td>${app.date || '-'}</td>
-              <td>${app.slot || '-'}</td>
+              <td>${app.serial || "-"}</td>
+              <td>${app.patientName || "-"}</td>
+              <td>${app.date || "-"}</td>
+              <td>${app.slot || "-"}</td>
               <td>${formatMinutesToHMS(app.waitMinutes || 0)}</td>
               <td>${app.extraDelay || 0} mins</td>
-              <td><span class="tag ${app.status === 'Completed' ? 'gray' : 'success'}">${app.status || '-'}</span></td>
+              <td><span class="tag ${app.status === "Completed" ? "gray" : "success"}">${app.status || "-"}</span></td>
               <td>
-                ${app.status === 'Completed' ? '-' : `
+                ${
+                  app.status === "Completed"
+                    ? "-"
+                    : `
                   <div class="inline-actions">
                     <input class="inline-delay-input" type="number" id="delay-input-${app.id}" min="1" placeholder="Delay" />
                     <button class="btn btn-outline small-btn" type="button" onclick="QueueCare.applyDelayToAppointment('${app.id}')">Add Delay</button>
                   </div>
-                `}
+                `
+                }
               </td>
             </tr>
-          `).join('');
+          `,
+          )
+          .join("");
       }
     }
 
@@ -929,7 +1105,7 @@ const QueueCare = (() => {
   }
 
   function renderDoctorDashboard() {
-    const user = requireRole('doctor');
+    const user = requireRole("doctor");
     if (!user) return;
 
     const doctor = getLoggedDoctorProfile();
@@ -944,76 +1120,90 @@ const QueueCare = (() => {
   }
 
   function renderPatientChart() {
-    const canvas = document.getElementById('patientVisitsChart');
-    if (!canvas || typeof Chart === 'undefined') return;
+    const canvas = document.getElementById("patientVisitsChart");
+    if (!canvas || typeof Chart === "undefined") return;
 
-    const user = currentUser('patient');
+    const user = currentUser("patient");
     if (!user) return;
 
-    const history = read('qc_appointments', []).filter(app => app.patientEmail === user.email);
-    const labels = history.length ? history.map(h => h.date).reverse() : ['No Data'];
+    const history = read("qc_appointments", []).filter(
+      (app) => app.patientEmail === user.email,
+    );
+    const labels = history.length
+      ? history.map((h) => h.date).reverse()
+      : ["No Data"];
     const data = history.length ? history.map((_, i) => i + 1).reverse() : [0];
 
     if (patientChartRef) patientChartRef.destroy();
 
     patientChartRef = new Chart(canvas, {
-      type: 'line',
+      type: "line",
       data: {
         labels,
-        datasets: [{
-          label: 'Visits',
-          data,
-          borderWidth: 3,
-          tension: 0.35,
-          fill: false
-        }]
+        datasets: [
+          {
+            label: "Visits",
+            data,
+            borderWidth: 3,
+            tension: 0.35,
+            fill: false,
+          },
+        ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false
-      }
+        maintainAspectRatio: false,
+      },
     });
   }
 
   function renderDoctorChart(appointments) {
-    const canvas = document.getElementById('doctorAnalyticsChart');
-    if (!canvas || typeof Chart === 'undefined') return;
+    const canvas = document.getElementById("doctorAnalyticsChart");
+    if (!canvas || typeof Chart === "undefined") return;
 
-    const active = appointments.filter(app => app.status !== 'Completed').length;
-    const completed = appointments.filter(app => app.status === 'Completed').length;
-    const waits = appointments.map(app => Number(app.waitMinutes || 0));
-    const avgWait = waits.length ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length) : 0;
+    const active = appointments.filter(
+      (app) => app.status !== "Completed",
+    ).length;
+    const completed = appointments.filter(
+      (app) => app.status === "Completed",
+    ).length;
+    const waits = appointments.map((app) => Number(app.waitMinutes || 0));
+    const avgWait = waits.length
+      ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length)
+      : 0;
 
     if (doctorChartRef) doctorChartRef.destroy();
 
     doctorChartRef = new Chart(canvas, {
-      type: 'bar',
+      type: "bar",
       data: {
-        labels: ['Active', 'Completed', 'Avg Wait'],
-        datasets: [{
-          label: 'Overview',
-          data: [active, completed, avgWait],
-          borderWidth: 1
-        }]
+        labels: ["Active", "Completed", "Avg Wait"],
+        datasets: [
+          {
+            label: "Overview",
+            data: [active, completed, avgWait],
+            borderWidth: 1,
+          },
+        ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false
-      }
+        maintainAspectRatio: false,
+      },
     });
   }
 
   function startPatientWaitUpdates() {
-    stopPatientWaitUpdates();
-
-    const page = document.body.dataset.page || '';
+    const page = document.body.dataset.page || "";
     const activeRole = getActiveRole();
 
-    if (!(page === 'patient-dashboard' && activeRole === 'patient')) return;
+    if (!(page === "patient-dashboard" && activeRole === "patient")) return;
 
-    patientWaitInterval = setInterval(() => {
-      updatePatientDashboardLiveOnly();
-    }, 1000);
+    const user = currentUser("patient");
+    if (!user) return;
+
+    const latest = getLatestPatientAppointment(user.email);
+    if (latest) startPatientCountdown(latest.waitMinutes);
   }
 
   function init() {
@@ -1033,8 +1223,8 @@ const QueueCare = (() => {
     quickSelectDoctor,
     removeDoctorSlot,
     updateDuration,
-    applyDelayToAppointment
+    applyDelayToAppointment,
   };
 })();
 
-document.addEventListener('DOMContentLoaded', () => QueueCare.init());
+document.addEventListener("DOMContentLoaded", () => QueueCare.init());
