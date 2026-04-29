@@ -5,9 +5,12 @@ const QueueCare = (() => {
   let doctorChartRef = null;
   let patientWaitInterval = null;
 
+  const API_BASE = window.location.origin;
 
-  const API_BASE = "http://127.0.0.1:8000";
-  const WS_BASE = "ws://127.0.0.1:8000/ws/live";
+  const WS_BASE =
+    window.location.protocol === "https:"
+      ? `wss://${window.location.host}/ws/live`
+      : `ws://${window.location.host}/ws/live`;
 
   async function api(url, method = "GET", body = null) {
     const res = await fetch(API_BASE + url, {

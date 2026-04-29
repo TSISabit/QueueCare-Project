@@ -30,4 +30,18 @@ urlpatterns = [
     path("api/appointments/<int:appointment_id>/complete/", complete_appointment),
 
     path("api/patients/<int:patient_id>/dashboard/", patient_dashboard),
+    path("", frontend_page),
+path("index.html", frontend_page),
+path("patient-login.html", lambda request: frontend_page(request, "patient-login.html")),
+path("patient-register.html", lambda request: frontend_page(request, "patient-register.html")),
+path("patient-dashboard.html", lambda request: frontend_page(request, "patient-dashboard.html")),
+path("patient-history.html", lambda request: frontend_page(request, "patient-history.html")),
+path("doctor-login.html", lambda request: frontend_page(request, "doctor-login.html")),
+path("doctor-register.html", lambda request: frontend_page(request, "doctor-register.html")),
+path("doctor-dashboard.html", lambda request: frontend_page(request, "doctor-dashboard.html")),
+
+path("styles.css", lambda request: frontend_asset(request, "styles.css")),
+path("app.js", lambda request: frontend_asset(request, "app.js")),
 ]
+from views import frontend_page, frontend_asset
+

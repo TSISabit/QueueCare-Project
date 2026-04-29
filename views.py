@@ -223,3 +223,46 @@ def doctor_dashboard(request, doctor_id):
         "appointments": AppointmentSerializer(appointments, many=True).data,
         "total_delay": sum(a.extra_delay for a in appointments if a.status == "Booked")
     })
+
+from pathlib import Path
+from django.conf import settings
+from django.http import FileResponse, Http404
+from django.shortcuts import render
+
+
+def frontend_page(request, filename="index.html"):
+    allowed_pages = {
+        "index.html",
+        "patient-login.html",
+        "patient-register.html",
+        "patient-dashboard.html",
+        "patient-history.html",
+        "doctor-login.html",
+        "doctor-register.html",
+        "doctor-dashboard.html",
+    }
+
+    if filename not in allowed_pages:
+        raise Http404("Page not found")
+
+    return render(request, filename)
+
+
+def frontend_asset(request, filename):
+    allowed_assets = {
+        "styles.css": "text/css",
+        "app.js": "application/javascript",
+    }
+
+    if filename not in allowed_assets:
+        raise Http404("Asset not found")
+
+    file_path = Path(settings.BASE_DIR) / filename
+
+    if not file_path.exists():
+        raise Http404("File not found")
+
+    return FileResponse(
+        open(file_path, "rb"),
+        content_type=allowed_assets[filename]
+    )
