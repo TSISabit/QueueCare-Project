@@ -1,4 +1,5 @@
-const API_BASE = "https://queuecare-project-production.up.railway.app";
+const API_BASE = "http://127.0.0.1:8000";
+const WS_BASE = "ws://127.0.0.1:8000/ws/live";
 
 const QueueCare = (() => {
   let patientChartRef = null;
